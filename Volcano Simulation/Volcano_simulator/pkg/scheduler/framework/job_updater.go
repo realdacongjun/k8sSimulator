@@ -98,9 +98,22 @@ func (ju *jobUpdater) updateJob(index int) {
 	job := ju.jobQueue[index]
 	ssn := ju.ssn
 
+	// 添加空指针检查
+	if job == nil || job.PodGroup == nil {
+		klog.Warningf("Job or PodGroup is nil for index %d", index)
+		return
+	}
+
 	job.PodGroup.Status = jobStatus(ssn, job)
 	oldStatus, found := ssn.podGroupStatus[job.UID]
 	updatePG := !found || isPodGroupStatusUpdated(job.PodGroup.Status, oldStatus)
+
+	// 添加对ssn和ssn.cache的空指针检查
+	if ssn == nil || ssn.cache == nil {
+		klog.Warningf("Session or cache is nil for job <%s/%s>", job.Namespace, job.Name)
+		return
+	}
+
 	if _, err := ssn.cache.UpdateJobStatus(job, updatePG); err != nil {
 		klog.Errorf("Failed to update job <%s/%s>: %v",
 			job.Namespace, job.Name, err)

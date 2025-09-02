@@ -80,11 +80,13 @@ func (s *Statement) Evict(reclaimee *api.TaskInfo, reason string) error {
 		}
 	}
 
-	for _, eh := range s.ssn.eventHandlers {
-		if eh.DeallocateFunc != nil {
-			eh.DeallocateFunc(&Event{
-				Task: reclaimee,
-			})
+	if s.ssn.eventHandlers != nil {
+		for _, eh := range s.ssn.eventHandlers {
+			if eh.DeallocateFunc != nil {
+				eh.DeallocateFunc(&Event{
+					Task: reclaimee,
+				})
+			}
 		}
 	}
 
@@ -158,23 +160,29 @@ func (s *Statement) Pipeline(task *api.TaskInfo, hostname string) error {
 
 	task.NodeName = hostname
 
-	if node, found := s.ssn.Nodes[hostname]; found {
-		if err := node.AddTask(task); err != nil {
-			klog.Errorf("Failed to pipeline task <%v/%v> to node <%v> in Session <%v>: %v",
-				task.Namespace, task.Name, hostname, s.ssn.UID, err)
-		}
-		klog.V(3).Infof("After pipelined Task <%v/%v> to Node <%v>: idle <%v>, used <%v>, releasing <%v>",
-			task.Namespace, task.Name, node.Name, node.Idle, node.Used, node.Releasing)
-	} else {
+	node, found := s.ssn.Nodes[hostname]
+	if !found {
 		klog.Errorf("Failed to find Node <%s> in Session <%s> index when binding.",
 			hostname, s.ssn.UID)
+		return fmt.Errorf("failed to find node %s", hostname)
 	}
 
-	for _, eh := range s.ssn.eventHandlers {
-		if eh.AllocateFunc != nil {
-			eh.AllocateFunc(&Event{
-				Task: task,
-			})
+	if err := node.AddTask(task); err != nil {
+		klog.Errorf("Failed to pipeline task <%v/%v> to node <%v> in Session <%v>: %v",
+			task.Namespace, task.Name, hostname, s.ssn.UID, err)
+		return err
+	}
+
+	klog.V(3).Infof("After pipelined Task <%v/%v> to Node <%v>: idle <%v>, used <%v>, releasing <%v>",
+		task.Namespace, task.Name, node.Name, node.Idle, node.Used, node.Releasing)
+
+	if s.ssn.eventHandlers != nil {
+		for _, eh := range s.ssn.eventHandlers {
+			if eh.AllocateFunc != nil {
+				eh.AllocateFunc(&Event{
+					Task: task,
+				})
+			}
 		}
 	}
 
@@ -275,16 +283,53 @@ func (s *Statement) Allocate(task *api.TaskInfo, nodeInfo *api.NodeInfo) (err er
 	}
 
 	// Callbacks
-	for _, eh := range s.ssn.eventHandlers {
-		if eh.AllocateFunc != nil {
-			eh.AllocateFunc(&Event{
-				Task: task,
-			})
+	if s.ssn != nil && s.ssn.eventHandlers != nil {
+		for _, eh := range s.ssn.eventHandlers {
+			if eh.AllocateFunc != nil {
+				eh.AllocateFunc(&Event{
+					Task: task,
+				})
+			}
 		}
 	}
 
 	// Update status in session
 	klog.V(3).Info("Allocating operations ...")
+	if s.ssn != nil {
+		if s.ssn.Jobs != nil {
+			job, found := s.ssn.Jobs[task.Job]
+			if found {
+				if err := job.UpdateTaskStatus(task, api.Allocated); err != nil {
+					klog.Errorf("Failed to update task <%v/%v> status to %v in Session <%v>: %v",
+						task.Namespace, task.Name, api.Allocated, s.ssn.UID, err)
+					return err
+				}
+			} else {
+				klog.Errorf("Failed to find Job <%s> in Session <%s> index when binding.",
+					task.Job, s.ssn.UID)
+				return fmt.Errorf("failed to find job %s", task.Job)
+			}
+		}
+
+		if s.ssn.Nodes != nil {
+			hostname := nodeInfo.Name
+			node, found := s.ssn.Nodes[hostname]
+			if found {
+				if err := node.AddTask(task); err != nil {
+					klog.Errorf("Failed to add task <%v/%v> to node <%v> in Session <%v>: %v",
+						task.Namespace, task.Name, hostname, s.ssn.UID, err)
+					return err
+				}
+				klog.V(3).Infof("After allocated Task <%v/%v> to Node <%v>: idle <%v>, used <%v>, releasing <%v>",
+					task.Namespace, task.Name, node.Name, node.Idle, node.Used, node.Releasing)
+			} else {
+				klog.Errorf("Failed to find Node <%s> in Session <%s> index when binding.",
+					hostname, s.ssn.UID)
+				return fmt.Errorf("failed to find node %s", hostname)
+			}
+		}
+	}
+
 	s.operations = append(s.operations, operation{
 		name: Allocate,
 		task: task,
@@ -342,15 +387,6 @@ func (s *Statement) AllocateV2(task *api.TaskInfo, nodeInfo *api.NodeInfo) (err 
 		klog.Errorf("Failed to find Node <%s> in Session <%s> index when binding.",
 			hostname, s.ssn.UID)
 		return fmt.Errorf("failed to find node %s", hostname)
-	}
-
-	// Callbacks，考虑去掉
-	for _, eh := range s.ssn.eventHandlers {
-		if eh.AllocateFunc != nil {
-			eh.AllocateFunc(&Event{
-				Task: task,
-			})
-		}
 	}
 
 	// Update status in session
@@ -424,7 +460,7 @@ func (s *Statement) allocateV2(task *api.TaskInfo) error {
 	maxCountDown := float64(0)
 
 	//因为有新的binding task，所有任务创建时间++
-	for _, otherTask := range clusterNode.Tasks{
+	for _, otherTask := range clusterNode.Tasks {
 		if otherTask.Status != api.Binding {
 			continue
 		}
@@ -432,7 +468,7 @@ func (s *Statement) allocateV2(task *api.TaskInfo) error {
 	}
 
 	//令task的container创建时间为 node中其它binding task的创建时间 和 node默认时间 中的最大值
-	for _, otherTask := range clusterNode.Tasks{
+	for _, otherTask := range clusterNode.Tasks {
 		if otherTask.Status != api.Binding {
 			continue
 		}
@@ -442,9 +478,8 @@ func (s *Statement) allocateV2(task *api.TaskInfo) error {
 
 	clusterNode.AddTask(clusterTask)
 
-
 	if job, found := s.ssn.Jobs[task.Job]; found {
-		if err := job.UpdateTaskStatus(task, api.Binding); err != nil {//更新ssn中的job中该task的状态
+		if err := job.UpdateTaskStatus(task, api.Binding); err != nil { //更新ssn中的job中该task的状态
 			klog.Errorf("Failed to update task <%v/%v> status to %v in Session <%v>: %v",
 				task.Namespace, task.Name, api.Binding, s.ssn.UID, err)
 			return err

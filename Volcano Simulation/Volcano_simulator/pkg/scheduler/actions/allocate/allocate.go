@@ -18,6 +18,7 @@ package allocate
 
 import (
 	"fmt"
+
 	"k8s.io/klog"
 
 	"volcano.sh/volcano/pkg/scheduler/api"
@@ -93,7 +94,6 @@ func (alloc *Action) ExecuteV0(ssn *framework.Session) {
 		klog.V(4).Infof("Added Job <%s/%s> into Queue <%s>", job.Namespace, job.Name, job.Queue)
 		jobs.Push(job)
 	}
-
 
 	klog.V(3).Infof("Try to allocate resource to %d Namespaces", len(jobsMap))
 
@@ -232,7 +232,6 @@ func (alloc *Action) ExecuteV0(ssn *framework.Session) {
 
 			nodeScores := util.PrioritizeNodes(task, candidateNodes, ssn.BatchNodeOrderFn, ssn.NodeOrderMapFn, ssn.NodeOrderReduceFn)
 
-
 			node := ssn.BestNodeFn(task, nodeScores)
 			if node == nil {
 				node = util.SelectBestNode(nodeScores)
@@ -321,7 +320,7 @@ func (alloc *Action) Execute(ssn *framework.Session) {
 
 		namespace := api.NamespaceName(job.Namespace)
 		queueMap, found := jobsMap[namespace]
-		if !found {  //若该namespace不在namespaces queue中，则push进queue中
+		if !found { //若该namespace不在namespaces queue中，则push进queue中
 			namespaces.Push(namespace)
 
 			queueMap = make(map[api.QueueID]*util.PriorityQueue)
@@ -337,7 +336,6 @@ func (alloc *Action) Execute(ssn *framework.Session) {
 		klog.V(4).Infof("Added Job <%s/%s> into Queue <%s>", job.Namespace, job.Name, job.Queue)
 		jobs.Push(job)
 	}
-
 
 	klog.V(3).Infof("Try to allocate resource to %d Namespaces", len(jobsMap))
 
@@ -455,7 +453,7 @@ func (alloc *Action) Execute(ssn *framework.Session) {
 			}
 
 			klog.V(3).Infof("There are <%d> nodes for Job <%v/%v>", len(nodes), job.Namespace, job.Name)
-			predicateNodes, fitErrors := ph.PredicateNodes(task, nodes, predicateFn)//有问题
+			predicateNodes, fitErrors := ph.PredicateNodes(task, nodes, predicateFn) //有问题
 			if len(predicateNodes) == 0 {
 				job.NodesFitErrors[task.UID] = fitErrors
 				break
@@ -519,7 +517,6 @@ func (alloc *Action) Execute(ssn *framework.Session) {
 					}
 				}
 			}
-
 
 			if ssn.JobReady(job) && !tasks.Empty() {
 				jobs.Push(job)

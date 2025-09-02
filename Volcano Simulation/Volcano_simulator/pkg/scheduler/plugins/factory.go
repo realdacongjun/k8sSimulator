@@ -26,6 +26,7 @@ import (
 	"volcano.sh/volcano/pkg/scheduler/plugins/nodeorder"
 	"volcano.sh/volcano/pkg/scheduler/plugins/numaaware"
 	"volcano.sh/volcano/pkg/scheduler/plugins/overcommit"
+	"volcano.sh/volcano/pkg/scheduler/plugins/ppo"
 	"volcano.sh/volcano/pkg/scheduler/plugins/predicates"
 	"volcano.sh/volcano/pkg/scheduler/plugins/priority"
 	"volcano.sh/volcano/pkg/scheduler/plugins/proportion"
@@ -50,6 +51,7 @@ func initV0() {
 	framework.RegisterPluginBuilder(sla.PluginName, sla.New)
 	framework.RegisterPluginBuilder(tasktopology.PluginName, tasktopology.New)
 	framework.RegisterPluginBuilder(numaaware.PluginName, numaaware.New)
+	framework.RegisterPluginBuilder(ppo.PluginName, ppo.New)
 
 	// Plugins for Queues
 	framework.RegisterPluginBuilder(proportion.PluginName, proportion.New)
@@ -73,6 +75,7 @@ func init() {
 	framework.RegisterPluginBuilder(sla.PluginName, sla.New)
 	//framework.RegisterPluginBuilder(tasktopology.PluginName, tasktopology.New)
 	//framework.RegisterPluginBuilder(numaaware.PluginName, numaaware.New)
+	framework.RegisterPluginBuilder(ppo.PluginName, ppo.New)
 
 	// Plugins for Queues
 	framework.RegisterPluginBuilder(proportion.PluginName, proportion.New)

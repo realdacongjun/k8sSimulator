@@ -33,12 +33,11 @@ import (
 	"volcano.sh/volcano/pkg/scheduler/util"
 )
 
-
 // Session information for the current session
 type Session struct {
 	UID types.UID
 
-	Cluster  *api.ClusterInfo //自己加的
+	Cluster *api.ClusterInfo //自己加的
 
 	kubeClient      kubernetes.Interface
 	cache           cache.Cache
@@ -59,8 +58,8 @@ type Session struct {
 	Configurations []conf.Configuration
 	NodeList       []*api.NodeInfo //NodeList和Nodes为Node的map形式和list形式
 
-	plugins           map[string]Plugin
-	eventHandlers     []*EventHandler
+	plugins       map[string]Plugin
+	eventHandlers []*EventHandler
 	//l在r前返回-1（如l为2000年、r为3000年），r在l前返回1
 	jobOrderFns       map[string]api.CompareFn
 	queueOrderFns     map[string]api.CompareFn
@@ -104,6 +103,7 @@ func openSession(cache cache.Cache) *Session {
 		Queues:         map[api.QueueID]*api.QueueInfo{},
 
 		plugins:           map[string]Plugin{},
+		eventHandlers:     []*EventHandler{},
 		jobOrderFns:       map[string]api.CompareFn{},
 		queueOrderFns:     map[string]api.CompareFn{},
 		taskOrderFns:      map[string]api.CompareFn{},
@@ -177,11 +177,11 @@ func openSession(cache cache.Cache) *Session {
 
 func openSessionV2(cluster *api.ClusterInfo) *Session {
 	ssn := &Session{
-		UID:             uuid.NewUUID(),
+		UID: uuid.NewUUID(),
 		//kubeClient:      cache.Client(),
 		//cache:           cache,
 		//informerFactory: cache.SharedInformerFactory(),
-		Cluster:  cluster,
+		Cluster: cluster,
 
 		TotalResource:  api.EmptyResource(),
 		podGroupStatus: map[api.JobID]scheduling.PodGroupStatus{},
@@ -192,6 +192,7 @@ func openSessionV2(cluster *api.ClusterInfo) *Session {
 		Queues:         map[api.QueueID]*api.QueueInfo{},
 
 		plugins:           map[string]Plugin{},
+		eventHandlers:     []*EventHandler{},
 		jobOrderFns:       map[string]api.CompareFn{},
 		queueOrderFns:     map[string]api.CompareFn{},
 		taskOrderFns:      map[string]api.CompareFn{},
@@ -220,7 +221,7 @@ func openSessionV2(cluster *api.ClusterInfo) *Session {
 
 	//snapshot := cache.Snapshot()
 
-	snapshot:=cloneCluster(cluster)
+	snapshot := cloneCluster(cluster)
 	ssn.Jobs = snapshot.Jobs //jobs要自己写
 	for _, job := range ssn.Jobs {
 		// only conditions will be updated periodically
@@ -251,7 +252,7 @@ func openSessionV2(cluster *api.ClusterInfo) *Session {
 
 	ssn.Nodes = snapshot.Nodes //Nodes要自己写
 	ssn.RevocableNodes = snapshot.RevocableNodes
-	ssn.Queues = snapshot.Queues //Queue要自己写
+	ssn.Queues = snapshot.Queues               //Queue要自己写
 	ssn.NamespaceInfo = snapshot.NamespaceInfo //NamespaceInfo要自己写
 	// calculate all nodes' resource only once in each schedule cycle, other plugins can clone it when need
 	for _, n := range ssn.Nodes {
@@ -264,7 +265,7 @@ func openSessionV2(cluster *api.ClusterInfo) *Session {
 	return ssn
 }
 
-func cloneCluster(cluster *api.ClusterInfo) (*api.ClusterInfo) {
+func cloneCluster(cluster *api.ClusterInfo) *api.ClusterInfo {
 	snapshot := &api.ClusterInfo{
 		Nodes:          make(map[string]*api.NodeInfo),
 		Jobs:           make(map[api.JobID]*api.JobInfo),
@@ -273,32 +274,32 @@ func cloneCluster(cluster *api.ClusterInfo) (*api.ClusterInfo) {
 		RevocableNodes: make(map[string]*api.NodeInfo),
 	}
 
-	for name,qi := range cluster.Queues{
-		snapshot.Queues[name]=qi.Clone()
+	for name, qi := range cluster.Queues {
+		snapshot.Queues[name] = qi.Clone()
 	}
 
-	for name,nsi := range cluster.NamespaceInfo{
-		snapshot.NamespaceInfo[name]=&api.NamespaceInfo{
-			Name: nsi.Name,
+	for name, nsi := range cluster.NamespaceInfo {
+		snapshot.NamespaceInfo[name] = &api.NamespaceInfo{
+			Name:   nsi.Name,
 			Weight: nsi.Weight,
 		}
 	}
 
-	for name,ni := range cluster.Nodes{ //将集群node信息加入到snapshot中
-		snapshot.Nodes[name]=ni.Clone()
+	for name, ni := range cluster.Nodes { //将集群node信息加入到snapshot中
+		snapshot.Nodes[name] = ni.Clone()
 		snapshot.Nodes[name].Used.MilliCPU = ni.Used.MilliCPU
 		snapshot.Nodes[name].Used.Memory = ni.Used.Memory
 		snapshot.Nodes[name].Idle.MilliCPU = ni.Idle.MilliCPU
 		snapshot.Nodes[name].Idle.Memory = ni.Idle.Memory
 	}
 
-	snapshot.NodeList=make([]string, len(cluster.Nodes))
-	for _,ni := range cluster.Nodes {
-		snapshot.NodeList=append(snapshot.NodeList, ni.Name)
+	snapshot.NodeList = make([]string, len(cluster.Nodes))
+	for _, ni := range cluster.Nodes {
+		snapshot.NodeList = append(snapshot.NodeList, ni.Name)
 	}
 
-	for name,ji := range cluster.Jobs{ //将job信息加入到snapshot中
-		snapshot.Jobs[name]=ji.Clone()
+	for name, ji := range cluster.Jobs { //将job信息加入到snapshot中
+		snapshot.Jobs[name] = ji.Clone()
 	}
 
 	return snapshot

@@ -1,3 +1,11 @@
+
+
+
+
+
+
+
+
 from common.utils.json_http_client import JsonHttpClient
 import time
 import datetime
@@ -45,7 +53,6 @@ def reset(sim_base_url, node_file_url, workload_file_url):
 
 def step(sim_base_url, conf_file_url, pods_result_url, jobs_result_url, figures_result_url, scheduler):
 
-    with plt.style.context('ieee'):
 
         client = JsonHttpClient(sim_base_url)
 
@@ -273,7 +280,7 @@ if __name__ == '__main__':
         #schedulers = ["GANG_BINPACK", "DRF_BINPACK", "SLA_BINPACK"]
         # schedulers = ["SLA_LRP", "SLA_MRP", "SLA_BRA", "DRF_LRP", "DRF_MRP", "DRF_BRA", "GANG_LRP", "GANG_MRP", "GANG_BRA",
         #               "GANG_DRF_LRP", "GANG_DRF_MRP", "GANG_DRF_BRA", "GANG_DRF_BINPACK"]
-        schedulers = ["GANG_LRP", "GANG_MRP", "GANG_BRA"]
+        schedulers = ["GANG_BINPACK","PPO"]
         for scheduler in schedulers:
             now = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
             # conf_file_url = 'common/scheduler_conf/conf_1.yaml'
