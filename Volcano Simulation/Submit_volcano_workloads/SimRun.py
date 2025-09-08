@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 from common.utils.json_http_client import JsonHttpClient
 import time
 import datetime
@@ -262,6 +254,17 @@ if __name__ == '__main__':
     node_file_url = 'common/nodes/nodes_7-0.yaml'
     workload_file_url = 'common/workloads/AI-workloads/wsl_test_mrp-2.yaml'
 
+    # 添加大规模测试配置
+    large_scale_test = False  # 设置为True以启用大规模测试
+    medium_scale_test = True  # 设置为True以启用中等规模测试
+
+    if large_scale_test:
+        node_file_url = 'E:\GO_projects\k8sSimulator-test_branch\Volcano Simulation\Submit_volcano_workloads\generated_configs\\nodes_500.yaml'
+        workload_file_url = 'E:\GO_projects\k8sSimulator-test_branch\Volcano Simulation\Submit_volcano_workloads\generated_configs\wsl_large_test.yaml'
+    elif medium_scale_test:
+        node_file_url = 'E:\GO_projects\k8sSimulator-test_branch\Volcano Simulation\Submit_volcano_workloads\generated_configs\\nodes_500.yaml'
+        workload_file_url = 'E:\GO_projects\k8sSimulator-test_branch\Volcano Simulation\Submit_volcano_workloads\generated_configs\wsl_large_test.yaml'
+
     if os.path.exists(os.path.join(os.getcwd(), "volcano-sim-result/")):
         shutil.rmtree(os.path.join(os.getcwd(), "volcano-sim-result/"))
     os.makedirs(os.path.join(os.getcwd(), "volcano-sim-result/"), exist_ok=False)
@@ -270,17 +273,21 @@ if __name__ == '__main__':
     for i in range(1):
         print("**************************************************** " + str(i+1) + " test: ****************************************************")
 
-        # schedulers = ["GANG_LRP", "GANG_MRP", "GANG_BRA", "SLA_LRP", "SLA_MRP", "SLA_BRA",
-        #               "GANG_DRF_LRP", "GANG_DRF_MRP", "GANG_DRF_BRA", "GANG_BINPACK", "SLA_BINPACK", "GANG_DRF_BINPACK"]
+        # 为大规模测试启用PPO调度器
+        if large_scale_test or medium_scale_test:
+            schedulers = ["GANG_BINPACK","PPO"]
+        else:
+            # schedulers = ["GANG_LRP", "GANG_MRP", "GANG_BRA", "SLA_LRP", "SLA_MRP", "SLA_BRA",
+            #               "GANG_DRF_LRP", "GANG_DRF_MRP", "GANG_DRF_BRA", "GANG_BINPACK", "SLA_BINPACK", "GANG_DRF_BINPACK"]
 
-        # schedulers = ["GANG_LRP", "GANG_MRP", "GANG_BRA", "SLA_LRP", "SLA_MRP", "SLA_BRA",
-        #               "GANG_DRF_LRP", "GANG_DRF_MRP", "GANG_DRF_BRA", "GANG_BINPACK", "SLA_BINPACK", "GANG_DRF_BINPACK", "Default"]
+            # schedulers = ["GANG_LRP", "GANG_MRP", "GANG_BRA", "SLA_LRP", "SLA_MRP", "SLA_BRA",
+            #               "GANG_DRF_LRP", "GANG_DRF_MRP", "GANG_DRF_BRA", "GANG_BINPACK", "SLA_BINPACK", "GANG_DRF_BINPACK", "Default"]
 
-        #schedulers = ["GANG_BINPACK", "GANG_LRP", "GANG_MRP", "GANG_BRA", "DRF_BINPACK", "DRF_LRP", "DRF_MRP", "DRF_BRA", "SLA_BINPACK", "SLA_LRP", "SLA_MRP", "SLA_BRA"]
-        #schedulers = ["GANG_BINPACK", "DRF_BINPACK", "SLA_BINPACK"]
-        # schedulers = ["SLA_LRP", "SLA_MRP", "SLA_BRA", "DRF_LRP", "DRF_MRP", "DRF_BRA", "GANG_LRP", "GANG_MRP", "GANG_BRA",
-        #               "GANG_DRF_LRP", "GANG_DRF_MRP", "GANG_DRF_BRA", "GANG_DRF_BINPACK"]
-        schedulers = ["GANG_BINPACK","PPO"]
+            #schedulers = ["GANG_BINPACK", "GANG_LRP", "GANG_MRP", "GANG_BRA", "DRF_BINPACK", "DRF_LRP", "DRF_MRP", "DRF_BRA", "SLA_BINPACK", "SLA_LRP", "SLA_MRP", "SLA_BRA"]
+            #schedulers = ["GANG_BINPACK", "DRF_BINPACK", "SLA_BINPACK"]
+            # schedulers = ["SLA_LRP", "SLA_MRP", "SLA_BRA", "DRF_LRP", "DRF_MRP", "DRF_BRA", "GANG_LRP", "GANG_MRP", "GANG_BRA",
+            #               "GANG_DRF_LRP", "GANG_DRF_MRP", "GANG_DRF_BRA", "GANG_DRF_BINPACK"]
+            schedulers = ["GANG_BINPACK","PPO"]
         for scheduler in schedulers:
             now = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
             # conf_file_url = 'common/scheduler_conf/conf_1.yaml'

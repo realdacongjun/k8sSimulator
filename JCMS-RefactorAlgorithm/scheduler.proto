@@ -1,0 +1,25 @@
+// scheduler.proto
+// 定义调度器gRPC服务接口
+
+syntax = "proto3";
+
+// 包名
+package scheduler;
+
+// 服务定义
+service Scheduler {
+  // 预测接口
+  rpc Predict (StateRequest) returns (ActionResponse);
+}
+
+// 状态请求消息
+message StateRequest {
+  // 状态向量
+  repeated double state = 1;
+}
+
+// 动作响应消息
+message ActionResponse {
+  // 动作编号
+  int32 action = 1;
+}

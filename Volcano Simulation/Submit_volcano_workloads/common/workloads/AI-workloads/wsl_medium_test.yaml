@@ -1,0 +1,93 @@
+jobs:
+- apiVersion: batch.volcano.sh/v1alpha1
+  kind: Job
+  metadata:
+    labels:
+      sub-time: '1'
+    name: medium-test-job-0
+    namespace: default
+  spec:
+    minAvailable: 100
+    policies:
+    - action: CompleteJob
+      event: TaskCompleted
+    schedulerName: volcano
+    tasks:
+    - name: medium-test-task
+      policies:
+      - action: CompleteJob
+        event: TaskCompleted
+      replicas: 100
+      template:
+        metadata:
+          labels:
+            app: linc-workload
+            job: medium-test-job-0
+            jobTaskNumber: '100'
+            restartTime: '300'
+            restartLimit: '10'
+            terminationTime: '300'
+            terminationLimit: '0'
+        spec:
+          containers:
+          - name: task
+            image: 10.1.114.138:5000/pytorchjob-cifar10:v1.0
+            imagePullPolicy: IfNotPresent
+            command:
+              ["python3", "gpu-test3.py", "--epochs=2"]
+            resources:
+              limits:
+                cpu: '0.6'
+                memory: 1500Mi
+                nvidia.com/gpu: 1
+              requests:
+                cpu: '0.5'
+                memory: 1000Mi
+                nvidia.com/gpu: 1
+          restartPolicy: OnFailure
+- apiVersion: batch.volcano.sh/v1alpha1
+  kind: Job
+  metadata:
+    labels:
+      sub-time: '1'
+    name: medium-test-job-1
+    namespace: default
+  spec:
+    minAvailable: 50
+    policies:
+    - action: CompleteJob
+      event: TaskCompleted
+    schedulerName: volcano
+    tasks:
+    - name: medium-test-task
+      policies:
+      - action: CompleteJob
+        event: TaskCompleted
+      replicas: 50
+      template:
+        metadata:
+          labels:
+            app: linc-workload
+            job: medium-test-job-1
+            jobTaskNumber: '50'
+            restartTime: '300'
+            restartLimit: '5'
+            terminationTime: '300'
+            terminationLimit: '0'
+        spec:
+          containers:
+          - name: task
+            image: 10.1.114.138:5000/pytorchjob-cifar10:v1.0
+            imagePullPolicy: IfNotPresent
+            command:
+              ["python3", "gpu-test3.py", "--epochs=2"]
+            resources:
+              limits:
+                cpu: '1.2'
+                memory: 2500Mi
+                nvidia.com/gpu: 2
+              requests:
+                cpu: '1.0'
+                memory: 2000Mi
+                nvidia.com/gpu: 2
+          restartPolicy: OnFailure
